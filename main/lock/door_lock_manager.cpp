@@ -134,6 +134,7 @@ bool BoltLockManager::ReadConfigValues()
 
 bool BoltLockManager::Lock(EndpointId endpointId, const Optional<ByteSpan> & pin, OperationErrorEnum & err)
 {
+	
     return setLockState(endpointId, DlLockState::kLocked, pin, err);
 }
 
@@ -513,9 +514,7 @@ bool BoltLockManager::setLockState(EndpointId endpointId, DlLockState lockState,
         {
             ESP_LOGI(TAG, "Door Lock App: setting door lock state to \"%s\" [endpointId=%d]", lockStateToString(lockState),
                      endpointId);
-
             DoorLockServer::Instance().SetLockState(endpointId, lockState);
-
             return true;
         }
 

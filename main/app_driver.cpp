@@ -11,17 +11,18 @@
 #include <string.h>
 
 #include <esp_matter.h>
-//#include "bsp/esp-bsp.h"
+#include "bsp/esp-bsp.h"
 
 #include <app_priv.h>
 
 static const char *TAG = "app_driver";
-extern uint16_t door_lock_endpoint_id;
 
 using namespace chip::app::Clusters;
 using namespace esp_matter;
 
-esp_err_t app_driver_light_set_defaults(uint16_t endpoint_id)
+extern uint16_t door_lock_endpoint_id;
+
+esp_err_t app_driver_set_defaults(uint16_t endpoint_id)
 {
 	 esp_err_t err = ESP_OK;
     void *priv_data = endpoint::get_priv_data(endpoint_id);
@@ -39,9 +40,9 @@ esp_err_t app_driver_light_set_defaults(uint16_t endpoint_id)
     val.val.u8 = 1;
     attribute::set_val(attribute, &val);
      int value = val.val.u8;
-     gpio_hold_dis(GPIO_NUM); 
-     gpio_set_level(GPIO_NUM, false);
-    gpio_hold_en(GPIO_NUM); 
+ //    gpio_hold_dis(GPIO_NUM); 
+  //   gpio_set_level(GPIO_NUM, false);
+  //  gpio_hold_en(GPIO_NUM); 
                 printf("SET_DEFAULT LockState %d\n",value);
    // err |= app_driver_light_set_brightness(handle, &val);
     return err;
@@ -52,29 +53,16 @@ esp_err_t app_driver_attribute_update(app_driver_handle_t driver_handle, uint16_
                                       uint32_t attribute_id, esp_matter_attr_val_t *val)
 {
     esp_err_t err = ESP_OK;
-    printf("PRE_UPDATE\n");
-     if (endpoint_id == door_lock_endpoint_id) {
-       // led_indicator_handle_t handle = (led_indicator_handle_t)driver_handle;
-        if (cluster_id == DoorLock::Id) {
-            if (attribute_id == DoorLock::Attributes::LockState::Id) {
-               // err = app_driver_light_set_power(handle, val);
-               int value = val->val.u8;
-               
-               if(value == 2){        
-               gpio_hold_dis(GPIO_NUM);      
-               	gpio_set_level(GPIO_NUM, true);
-               	gpio_hold_en(GPIO_NUM); 
-               }else{
-               gpio_hold_dis(GPIO_NUM); 
-                gpio_set_level(GPIO_NUM, false);
-                gpio_hold_en(GPIO_NUM); 
-               }
-                printf("LockState %d\n",value);
-            }
-        } 
-    }  
+  //  printf("PRE_UPDATE\n");
     
     return err;
 }
 
+app_driver_handle_t app_driver_button_init()
+{
+    /* Initialize button */
+    button_handle_t btns[BSP_BUTTON_NUM];
+    ESP_ERROR_CHECK(bsp_iot_button_create(btns, NULL, BSP_BUTTON_NUM));
 
+    return (app_driver_handle_t)btns[0];
+}

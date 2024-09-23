@@ -16,6 +16,8 @@
 #include "freertos/timers.h" // provides FreeRTOS timer support
 
 #include <lib/core/CHIPError.h>
+#include "driver/gpio.h"
+#define GPIO_NUM GPIO_NUM_2
 
 struct WeekDaysScheduleInfo
 {

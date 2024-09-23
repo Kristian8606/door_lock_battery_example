@@ -16,6 +16,8 @@
 #include <app/ConcreteAttributePath.h>
 #include <app/data-model/Nullable.h>
 #include <lib/core/DataModelTypes.h>
+#include <stdlib.h>
+#include <string.h>
 
 using namespace chip::app::Clusters;
 using chip::app::DataModel::Nullable;
@@ -39,6 +41,11 @@ bool emberAfPluginDoorLockOnDoorLockCommand(chip::EndpointId endpointId, const N
 {
     ESP_LOGI(TAG, "Door Lock App: Lock Command endpoint=%d", endpointId);
     bool status = BoltLockMgr().Lock(endpointId, pinCode, err);
+    gpio_hold_dis(GPIO_NUM);      
+    gpio_set_level(GPIO_NUM, status);
+    gpio_hold_en(GPIO_NUM); 
+    ESP_LOGI(TAG, "Lock Command = %d", status);
+    
     return status;
 }
 
@@ -48,6 +55,10 @@ bool emberAfPluginDoorLockOnDoorUnlockCommand(chip::EndpointId endpointId, const
 {
     ESP_LOGI(TAG, "Door Lock App: Unlock Command endpoint=%d", endpointId);
     bool status = BoltLockMgr().Unlock(endpointId, pinCode, err);
+    gpio_hold_dis(GPIO_NUM);      
+    gpio_set_level(GPIO_NUM, status);
+    gpio_hold_en(GPIO_NUM); 
+    ESP_LOGI(TAG, "Unlock Command = %d", status);
     return status;
 }
 
@@ -121,4 +132,7 @@ DlStatus emberAfPluginDoorLockSetSchedule(chip::EndpointId endpointId, uint8_t h
 void emberAfPluginDoorLockOnAutoRelock(chip::EndpointId endpointId)
 {
     ESP_LOGI(TAG, "Door auto relock");
+    gpio_hold_dis(GPIO_NUM);      
+    gpio_set_level(GPIO_NUM, false);
+    gpio_hold_en(GPIO_NUM); 
 }
