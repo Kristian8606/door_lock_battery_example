@@ -19,6 +19,8 @@
 
 #include <common_macros.h>
 #include <app_priv.h>
+#include <app_reset.h>
+
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
 #include <platform/ESP32/OpenthreadLauncher.h>
 #endif
@@ -28,6 +30,7 @@
 
 static const char *TAG = "app_main";
 uint16_t door_lock_endpoint_id = 0;
+int32_t restart_counter = 0;
 
 using namespace esp_matter;
 using namespace esp_matter::attribute;
@@ -152,11 +155,64 @@ extern "C" void app_main()
 
     /* Initialize the ESP NVS layer */
     nvs_flash_init();
+    
+    printf("\n");
+    printf("Opening Non-Volatile Storage (NVS) handle... ");
+    nvs_handle_t my_handle;
+    err = nvs_open("storage", NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) {
+        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    } else {
+        printf("Done\n");
+
+        // Read
+        printf("Reading restart counter from NVS ... ");
+         // value will default to 0, if not set yet in NVS
+        err = nvs_get_i32(my_handle, "restart_counter", &restart_counter);
+        switch (err) {
+            case ESP_OK:
+                printf("Done\n");
+                printf("Restart counter = %" PRIu32 "\n", restart_counter);
+                if(restart_counter >= 5){
+                	printf("RESET MATTER\n");
+                	//esp_matter::factory_reset();
+                }
+                break;
+            case ESP_ERR_NVS_NOT_FOUND:
+                printf("The value is not initialized yet!\n");
+                break;
+            default :
+                printf("Error (%s) reading!\n", esp_err_to_name(err));
+        }
+
+        // Write
+        printf("Updating restart counter in NVS ... ");
+        restart_counter++;
+        err = nvs_set_i32(my_handle, "restart_counter", restart_counter);
+        printf((err != ESP_OK) ? "Failed!\n" : "Done\n");
+
+        // Commit written value.
+        // After setting any values, nvs_commit() must be called to ensure changes are written
+        // to flash storage. Implementations may write to storage at other times,
+        // but this is not guaranteed.
+        printf("Committing updates in NVS ... ");
+        err = nvs_commit(my_handle);
+        printf((err != ESP_OK) ? "Failed!\n" : "Done\n");
+
+        // Close
+        nvs_close(my_handle);
+    }
+
+    printf("\n");
+   
+    
 	gpio_reset_pin(GPIO_NUM);
     gpio_set_direction(GPIO_NUM, GPIO_MODE_OUTPUT);
     gpio_set_pull_mode(GPIO_NUM, GPIO_PULLUP_ONLY);
     gpio_set_level(GPIO_NUM, false);
     gpio_hold_en(GPIO_NUM); 
+
+
 #if CONFIG_PM_ENABLE
     esp_pm_config_t pm_config = {
         .max_freq_mhz = CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ,
@@ -209,6 +265,36 @@ extern "C" void app_main()
     door_lock_init();
     
     app_driver_set_defaults(door_lock_endpoint_id);
+  //   nvs_handle_t my_handle;
+  	 if(restart_counter >= 5){
+                	
+                	esp_matter::factory_reset();
+                	printf("ESP_FACTORY RESET\n");
+                }
+    err = nvs_open("storage", NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) {
+        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    } else {
+        printf("Done\n");
+
+
+        // Write
+        printf("Updating restart counter in NVS ... ");
+        restart_counter = 0;
+        err = nvs_set_i32(my_handle, "restart_counter", restart_counter);
+        printf((err != ESP_OK) ? "Failed!\n" : "Done\n");
+
+        // Commit written value.
+        // After setting any values, nvs_commit() must be called to ensure changes are written
+        // to flash storage. Implementations may write to storage at other times,
+        // but this is not guaranteed.
+        printf("Committing updates in NVS ... ");
+        err = nvs_commit(my_handle);
+        printf((err != ESP_OK) ? "Failed!\n" : "Done\n");
+
+        // Close
+        nvs_close(my_handle);
+    }
 
 #if CONFIG_ENABLE_ENCRYPTED_OTA
     err = esp_matter_ota_requestor_encrypted_init(s_decryption_key, s_decryption_key_len);
